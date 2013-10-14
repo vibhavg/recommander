@@ -1,14 +1,19 @@
 <!DOCTYPE html>
 <html>
-<head>
-<title> Facebook Friend Recommendations </title>
-</head>
+  <head>
+    <title>Facebook Friend Recommendations</title>
+    <link rel="stylesheet" href="/static/css/bootstrap.css" />
+  </head>
+  <body>
+    <div id="fb-root"></div>
+    <script src="/static/js/fbinit.js"></script>
 
-<body>
-<h1> 
-Hello World 
-</h1>
+    <div class="container">
+      <h1>hullo world</h1>
+      <fb:login-button show-faces="true" width="200" max-rows="1"></fb:login-button>
+    </div>
 
-</body>
-
+    <script src="http://code.jquery.com/jquery-latest.min.js"></script>
+    <script src="/static/js/bootstrap.min.js"></script>
+  </body>
 </html>

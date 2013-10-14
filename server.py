@@ -1,9 +1,9 @@
-from flask import Flask
+from flask import *
 app = Flask(__name__)
 
 @app.route("/")
-def hello():
-    return "Hello World"
+def index():
+    return render_template('index.jinja2')
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
