@@ -25,7 +25,6 @@ def index():
     if 'key' in session:
         try:
             graph = facebook.GraphAPI(session['key'])
-            profile = graph.get_object("me")
             friends = graph.get_connections("me", "friends")
             friend_list = [friend['id'] for friend in friends['data']]
 
@@ -33,17 +32,19 @@ def index():
             session.pop('key')
             return render_template('index.jinja2', movies=movies, books=books)
 
-        batch = []
-        for friend in friend_list[:50]:
-            batch.append({'method': 'GET', 'relative_url': friend + '/movies'})
+        if not 'movies' in session:
+            movies = []
+            for i in xrange(1, len(friend_list) / 50):
+                batch = []
+                for friend in friend_list[((i - 1) * 50):(i * 50)]:
+                    batch.append({'method': 'GET', 'relative_url': friend + '/movies'})
+                    
+                result = graph.request("", post_args={"batch": json.dumps(batch)})
+                for res in result:
+                    movies.append(json.loads(res['body'])['data'])
 
-        result = graph.request("", post_args={"batch": json.dumps(batch)})
-        movies = []
-        for res in result:
-            movies.append(json.loads(res['body'])['data'])
-
-        print movies
-
+            session['movies'] = movies
+    
     return render_template('index.jinja2', movies=movies, books=books)
 
 @app.route('/token')
