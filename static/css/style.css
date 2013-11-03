@@ -1,0 +1,31 @@
+body { padding: 20px; }
+
+.row {
+    margin: 0;
+}
+
+.well { 
+    padding: 10px; 
+    text-align: center; 
+    margin-right: 20px;
+    color: black;
+}
+
+.well:hover {
+    text-decoration: none;
+}
+
+.well h3 { margin-top: 0; font-size: 20px; }
+.well .poster { 
+    width: 160px;
+    height: 200px;
+    display: inline-block;
+    background-position: center;
+    background-size: cover;
+}
+
+h2 { 
+    border-bottom: 1px solid grey; 
+    padding-bottom: 5px;
+    margin-bottom: 15px;
+}
