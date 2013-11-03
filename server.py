@@ -1,5 +1,7 @@
 from flask import *
 import json
+import facebook
+import sys
 app = Flask(__name__)
 
 movies = [
@@ -21,14 +23,34 @@ app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
 @app.route('/')
 def index():
     if 'key' in session:
-        pass
+        try:
+            graph = facebook.GraphAPI(session['key'])
+            profile = graph.get_object("me")
+            friends = graph.get_connections("me", "friends")
+            friend_list = [friend['id'] for friend in friends['data']]
+
+        except facebook.GraphAPIError:
+            session.pop('key')
+            return render_template('index.jinja2', movies=movies, books=books)
+
+        batch = []
+        for friend in friend_list[:50]:
+            batch.append({'method': 'GET', 'relative_url': friend + '/movies'})
+
+        result = graph.request("", post_args={"batch": json.dumps(batch)})
+        movies = []
+        for res in result:
+            movies.append(json.loads(res['body'])['data'])
+
+        print movies
 
     return render_template('index.jinja2', movies=movies, books=books)
 
 @app.route('/token')
 def token():
-    if not 'key' in session:
-        session['key'] = request.args.get('key', '')
+    key = request.args.get('key', '')
+    if not 'key' in session or key != session['key']:
+        session['key'] = key
         return json.dumps({'refresh': True})
     else:
         return json.dumps({'refresh': False})
