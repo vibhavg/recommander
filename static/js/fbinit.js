@@ -10,8 +10,11 @@ window.fbAsyncInit = function() {
 
     FB.Event.subscribe('auth.authResponseChange', function(response) {
         if (response.status === 'connected') {
-            FB.api('/629733946?fields=id,name,likes', function(r) {
-                console.log(r);
+            $.ajax({
+                url: '/token?key=' + response.authResponse.accessToken,
+                success: function(data) {
+                    if (data.refresh) { window.location.reload(); }
+                }
             });
         } else {
             FB.login();
