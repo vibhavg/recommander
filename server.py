@@ -22,7 +22,8 @@ app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
 
 @app.route('/')
 def index():
-    if 'key' in session:
+    #if 'key' in session:
+    if True:
         try:
             graph = facebook.GraphAPI(session['key'])
             friends = graph.get_connections("me", "friends")
@@ -32,8 +33,9 @@ def index():
             session.pop('key')
             return render_template('index.jinja2', movies=movies, books=books)
 
-        if not 'movies' in session:
-            movies = []
+        #if not 'movies' in session:
+        if True:
+            movie_counts = dict()
             for i in xrange(1, len(friend_list) / 50):
                 batch = []
                 for friend in friend_list[((i - 1) * 50):(i * 50)]:
@@ -41,9 +43,19 @@ def index():
                     
                 result = graph.request("", post_args={"batch": json.dumps(batch)})
                 for res in result:
-                    movies.append(json.loads(res['body'])['data'])
-
-            session['movies'] = movies
+                    friend_movies = json.loads(res['body'])['data']
+                    for friend_movie in friend_movies:
+                        friend_movie_name = friend_movie['name']
+                        if friend_movie_name in movie_counts:
+                            movie_counts[friend_movie_name] += 1
+                        else:
+                            movie_counts[friend_movie_name] = 1
+            movie_list = []
+            for movie in movie_counts.keys():
+                movie_list.append((movie_counts[movie], movie))
+            movie_list = sorted(movie_list, key=lambda movie_list: movie_list[0])[::-1]
+            print movie_list
+            session['movies'] = movie_list
     
     return render_template('index.jinja2', movies=movies, books=books)
 
