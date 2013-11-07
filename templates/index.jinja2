@@ -27,10 +27,12 @@
 
       <h2>Movies</h2>
       <div class="row">
-        {% for movie in movies %}
+        {% for movie in movies[:10] %}
         <a class="col-md-2 well" href="#">
-          <h3>{{ movie.name }}</h3>
-          <div class="poster" style="background-image: url('{{ movie.poster }}')"></div>
+          <div class="clip">
+            <h3>{{ movie.name }}</h3>
+            <div class="poster" style="background-image: url('{{ movie.poster }}')"></div>
+          </div>
         </a>
         {% endfor %}
       </div>

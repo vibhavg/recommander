@@ -1,16 +1,11 @@
 from flask import *
+from urllib2 import Request, urlopen, HTTPError
+from urllib import urlencode
 import json
 import facebook
 import sys
 import sqlite3
 app = Flask(__name__)
-
-movies = [
-    {'name': 'Gravity',
-     'poster': 'http://www.thecoolector.com/wp-content/uploads/2013/07/gravity-poster.jpg'},
-    {'name': 'Star Trek Into Darkness',
-     'poster': 'http://oyster.ignimgs.com/wordpress/stg.ign.com/2012/12/star-trek-into-darkness-teaser-poster1-610x903.jpg'}
-]
 
 books = [
     {'name': 'The Hunger Games',
@@ -20,13 +15,33 @@ books = [
 ]
 
 app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
+MOVIEDB_KEY = '46a4fa7499a15b994b2bd72515a07315'
+HEADERS = {'Accept': 'application/json'}
+
+configRequest = Request('http://api.themoviedb.org/3/configuration?api_key=%s' % (MOVIEDB_KEY))
+CONFIG = json.loads(urlopen(configRequest).read())
+
+def get_info(name):
+    args = {'api_key': MOVIEDB_KEY, 'query': name}
+    empty = {'poster': ''}
+    try:
+        request = Request('http://api.themoviedb.org/3/search/movie?' + urlencode(args), headers=HEADERS)
+        response = json.loads(urlopen(request).read())
+    except:
+        return empty
+    if response['total_results'] == 0:
+        return empty
+
+    poster = response['results'][0]['poster_path']
+    return empty if poster is None else {'poster': CONFIG['images']['base_url'] + 'w154' + poster, 'id': response['results'][0]['id']}
 
 @app.route('/')
 def index():
     if not 'key' in session:
         return render_template('index.jinja2', movies=movies, books=books)
 
-    movies_db = sqlite3.connect('movies.db').cursor()
+    db = sqlite3.connect('movies.db')
+    cursor = db.cursor()
 
     print 'Connecting to Graph API...'
     try:
@@ -43,8 +58,12 @@ def index():
         
     print 'Connected!'
 
-    query = movies_db.execute('SELECT * FROM movies WHERE id = "%s"' % profile['id'])
-    if query.rowcount <= 0:
+    query = cursor.execute('SELECT * FROM movies WHERE id = ?', [profile['id']])
+    count = 0
+    for row in query:
+        count += 1
+
+    if count <= 0:
         print 'Querying movies.'
 
         movie_counts = dict()
@@ -53,7 +72,7 @@ def index():
             for friend in friend_list[((i - 1) * 50):(i * 50)]:
                 batch.append({'method': 'GET', 'relative_url': friend + '/movies'})
                 
-            result = graph.request("", post_args={"batch": json.dumps(batch)})
+            result = graph.request("", post_args={"batch": json.dumps(batch)})[:5]
             for res in result:
                 friend_movies = json.loads(res['body'])['data']
                 for friend_movie in friend_movies:
@@ -64,14 +83,19 @@ def index():
                         movie_counts[friend_movie_name] = 1
         movie_list = []
         for movie in movie_counts.keys():
-            movie_list.append((movie_counts[movie], movie))
+            info = get_info(movie)
+            if info['poster'] == '':
+                continue
+            movie_list.append((movie_counts[movie], movie, info['poster'], info['id']))
         movie_list = sorted(movie_list, key=lambda movie_list: movie_list[0])[::-1]
         
         print movie_list
-        movies_db.execute('INSERT INTO movies VALUES (?, ?)', (profile['id'], json.dumps(movie_list)))
+        cursor.execute('INSERT INTO movies VALUES (?, ?)', (profile['id'], json.dumps(movie_list)))
+        db.commit()
+        
 
-    query = movies_db.execute('SELECT * FROM movies WHERE id = "%s"' % profile['id'])
-    loadedMovies = json.loads(query.fetchone()[1])
+    query = cursor.execute('SELECT * FROM movies WHERE id = "%s"' % profile['id'])
+    loadedMovies = map(lambda pair: {'name': pair[1], 'poster': pair[2]}, json.loads(query.fetchone()[1]))
     return render_template('index.jinja2', movies=loadedMovies, books=books)
 
 @app.route('/token')
