@@ -54,7 +54,7 @@ def index():
         print 'Key failure :('
 
         session.pop('key')
-        return render_template('index.jinja2', movies=movies, books=books)
+        return render_template('index.jinja2', movies=[], books=books)
         
     print 'Connected!'
 
