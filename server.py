@@ -1,6 +1,7 @@
 from flask import *
 from urllib2 import Request, urlopen, HTTPError
 from urllib import urlencode
+from collections import defaultdict
 import urllib
 import json
 import facebook
@@ -69,10 +70,40 @@ def index():
     params = urllib.urlencode({'q':queryMutual, 'access_token':session['key'] })
 
     url = "https://graph.facebook.com/fql?" + params
-    data = json.loads(urllib.urlopen(url).read())
-    print data["data"]
+    data = json.loads(urllib.urlopen(url).read())["data"]
 
-    if count <= 0:
+    params = urllib.urlencode({'access_token':session['key'] })
+    url = "https://graph.facebook.com/me/movies?" + params
+    yourdata = json.load(urllib.urlopen(url))
+    yourmovies = set([movie['name'] for movie in yourdata['data'] if movie['category']=='Movie'])
+
+    friendWeight = {}
+    numFriends = len(friend_list)
+    movieWeightConstant = 2
+    for friend in data:
+        friendsMovies = set(friend['movies'].split(', '))
+        numCommon = len(friendsMovies.intersection(yourmovies))
+        numTotal = len(friendsMovies.union(yourmovies))
+        friendWeight[friend['uid']] = movieWeightConstant * float(numCommon)/(numTotal+1)
+        friendWeight[friend['uid']] += float(friend['mutual_friend_count'])/numFriends
+
+    movieRatings = defaultdict(int)
+    for friend in data:
+        for movie in friend['movies'].split(', '):
+            if movie not in yourmovies:
+                movieRatings[movie] += friendWeight[friend['uid']]
+
+    movieRatingsList = [(i, movieRatings[i]) for i in movieRatings.keys()]
+    movie_list = sorted(movieRatingsList, key=lambda movieRatingsList: movieRatingsList[1])[::-1]
+    movie_list = [name for (name,rating) in movie_list]
+    print movie_list
+    #cursor.execute('INSERT INTO movies VALUES (?, ?)', (profile['id'], json.dumps(movie_list)))
+    #db.commit()
+
+    if count > 0:
+        print 'Calculating Weights'
+
+
         print 'Querying movies.'
 
         movie_counts = dict()
