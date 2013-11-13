@@ -60,46 +60,55 @@ def index():
 
     print 'Connected!'
 
-    query = cursor.execute('SELECT * FROM movies WHERE id = ?', [profile['id']])
+    query = cursor.execute('SELECT * FROM movies WHERE uid = ?', [profile['id']])
     count = 0
     for row in query:
         count += 1
 
-    queryMutual = "select mutual_friend_count,uid,movies from user where uid in \
-        (select uid2 from friend where uid1=me()) order by mutual_friend_count desc LIMIT 100"
-    params = urllib.urlencode({'q':queryMutual, 'access_token':session['key'] })
+    if (count <= 0):
+        queryMutual = "select mutual_friend_count,uid,movies from user where uid in \
+            (select uid2 from friend where uid1=me()) order by mutual_friend_count desc LIMIT 100"
+        params = urllib.urlencode({'q':queryMutual, 'access_token':session['key'] })
 
-    url = "https://graph.facebook.com/fql?" + params
-    data = json.loads(urllib.urlopen(url).read())["data"]
+        url = "https://graph.facebook.com/fql?" + params
+        data = json.loads(urllib.urlopen(url).read())["data"]
 
-    params = urllib.urlencode({'access_token':session['key'] })
-    url = "https://graph.facebook.com/me/movies?" + params
-    yourdata = json.load(urllib.urlopen(url))
-    yourmovies = set([movie['name'] for movie in yourdata['data'] if movie['category']=='Movie'])
+        params = urllib.urlencode({'access_token':session['key'] })
+        url = "https://graph.facebook.com/me/movies?" + params
+        yourdata = json.load(urllib.urlopen(url))
+        yourmovies = set([movie['name'] for movie in yourdata['data'] if movie['category']=='Movie'])
 
-    friendWeight = {}
-    numFriends = len(friend_list)
-    movieWeightConstant = 2
-    for friend in data:
-        friendsMovies = set(friend['movies'].split(', '))
-        numCommon = len(friendsMovies.intersection(yourmovies))
-        numTotal = len(friendsMovies.union(yourmovies))
-        friendWeight[friend['uid']] = movieWeightConstant * float(numCommon)/(numTotal+1)
-        friendWeight[friend['uid']] += float(friend['mutual_friend_count'])/numFriends
+        friendWeight = {}
+        numFriends = len(friend_list)
+        movieWeightConstant = 2
+        for friend in data:
+            friendsMovies = set(friend['movies'].split(', '))
+            numCommon = len(friendsMovies.intersection(yourmovies))
+            numTotal = len(friendsMovies.union(yourmovies))
+            friendWeight[friend['uid']] = movieWeightConstant * float(numCommon)/(numTotal+1)
+            friendWeight[friend['uid']] += float(friend['mutual_friend_count'])/numFriends
 
-    movieRatings = defaultdict(int)
-    for friend in data:
-        for movie in friend['movies'].split(', '):
-            if movie not in yourmovies:
-                movieRatings[movie] += friendWeight[friend['uid']]
+        movieRatings = defaultdict(int)
+        for friend in data:
+            for movie in friend['movies'].split(', '):
+                if movie not in yourmovies:
+                    movieRatings[movie] += friendWeight[friend['uid']]
 
-    movieRatingsList = [(i, movieRatings[i]) for i in movieRatings.keys()]
-    movie_list = sorted(movieRatingsList, key=lambda movieRatingsList: movieRatingsList[1])[::-1]
-    movie_list = [name for (name,rating) in movie_list]
-    print movie_list
-    #cursor.execute('INSERT INTO movies VALUES (?, ?)', (profile['id'], json.dumps(movie_list)))
-    #db.commit()
+        movieRatingsList = [(i, movieRatings[i]) for i in movieRatings.keys()]
+        movie_list = sorted(movieRatingsList, key=lambda movieRatingsList: movieRatingsList[1])[::-1]
+        movie_list = [name for (name,rating) in movie_list]
 
+        movie_list_final = []
+        for movie in movie_list:
+            info = get_info(movie)
+            if info['poster'] != '':
+                movie_list_final.append((movieRatings[movie],movie,info['poster'],info['id']))
+
+        movie_list = movie_list_final
+        cursor.execute('INSERT INTO movies VALUES (?, ?)', (profile['id'], json.dumps(movie_list)))
+        db.commit()
+
+    ''''
     if count > 0:
         print 'Calculating Weights'
 
@@ -132,7 +141,7 @@ def index():
         print movie_list
         cursor.execute('INSERT INTO movies VALUES (?, ?)', (profile['id'], json.dumps(movie_list)))
         db.commit()
-
+    '''
 
     query = cursor.execute('SELECT * FROM movies WHERE id = "%s"' % profile['id'])
     loadedMovies = map(lambda pair: {'name': pair[1], 'poster': pair[2]}, json.loads(query.fetchone()[1]))
