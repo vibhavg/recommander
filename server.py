@@ -1,6 +1,7 @@
 from flask import *
 from urllib2 import Request, urlopen, HTTPError
 from urllib import urlencode
+import urllib
 import json
 import facebook
 import sys
@@ -49,19 +50,27 @@ def index():
         profile = graph.get_object("me")
         friends = graph.get_connections("me", "friends")
         friend_list = [friend['id'] for friend in friends['data']]
-        
+
     except facebook.GraphAPIError:
         print 'Key failure :('
 
         session.pop('key')
         return render_template('index.jinja2', movies=[], books=books)
-        
+
     print 'Connected!'
 
     query = cursor.execute('SELECT * FROM movies WHERE id = ?', [profile['id']])
     count = 0
     for row in query:
         count += 1
+
+    queryMutual = "select mutual_friend_count,uid,movies from user where uid in \
+        (select uid2 from friend where uid1=me()) order by mutual_friend_count desc LIMIT 100"
+    params = urllib.urlencode({'q':queryMutual, 'access_token':session['key'] })
+
+    url = "https://graph.facebook.com/fql?" + params
+    data = json.loads(urllib.urlopen(url).read())
+    print data["data"]
 
     if count <= 0:
         print 'Querying movies.'
@@ -71,7 +80,7 @@ def index():
             batch = []
             for friend in friend_list[((i - 1) * 50):(i * 50)]:
                 batch.append({'method': 'GET', 'relative_url': friend + '/movies'})
-                
+
             result = graph.request("", post_args={"batch": json.dumps(batch)})[:5]
             for res in result:
                 friend_movies = json.loads(res['body'])['data']
@@ -88,11 +97,11 @@ def index():
                 continue
             movie_list.append((movie_counts[movie], movie, info['poster'], info['id']))
         movie_list = sorted(movie_list, key=lambda movie_list: movie_list[0])[::-1]
-        
+
         print movie_list
         cursor.execute('INSERT INTO movies VALUES (?, ?)', (profile['id'], json.dumps(movie_list)))
         db.commit()
-        
+
 
     query = cursor.execute('SELECT * FROM movies WHERE id = "%s"' % profile['id'])
     loadedMovies = map(lambda pair: {'name': pair[1], 'poster': pair[2]}, json.loads(query.fetchone()[1]))
