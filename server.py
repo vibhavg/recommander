@@ -38,7 +38,7 @@ def get_info(name):
 @app.route('/')
 def index():
     if not 'key' in session:
-        return render_template('index.jinja2', movies=movies, books=books)
+        return render_template('index.jinja2', movies=[], books=books)
 
     db = sqlite3.connect('movies.db')
     cursor = db.cursor()
