@@ -50,7 +50,7 @@
       </nav>
       <div class="row movies">
         {% for movie in movies[:20] %}
-        <a class="col-md-2 well movie" href="#">
+        <a class="col-md-2 well movie" href="#" rating = "{{ movie.rating }}" year="{{ movie.year }}">
           <div class="clip">
             <h3>{{ movie.name }}</h3>
             <div class="poster" style="background-image: url('{{ movie.poster }}')"></div>

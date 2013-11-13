@@ -4,6 +4,8 @@ $(document).ready(function (){
     $('.movie').each(function(i) {
         $(this).data('name', $(this).find('h3').html().toLowerCase());
         $(this).data('rank', i);
+        $(this).data('year', $(this).attr('year'));
+        $(this).data('rating',$(this).attr('rating'));
     });
 
     $container.isotope({
@@ -17,10 +19,10 @@ $(document).ready(function (){
                 return $elem.data('name');
             },
             year: function($elem) {
-                return Math.random();
+                return $elem.data('year');
             },
             rating: function($elem) {
-                return Math.random();
+                return 7 -$elem.attr('rating');
             }
         }
     });

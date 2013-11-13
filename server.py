@@ -35,7 +35,8 @@ def get_info(name):
         return empty
 
     poster = response['results'][0]['poster_path']
-    return empty if poster is None else {'poster': CONFIG['images']['base_url'] + 'w154' + poster, 'id': response['results'][0]['id']}
+    releaseDate = response['results'][0]['release_date'][:4]
+    return empty if poster is None else {'poster': CONFIG['images']['base_url'] + 'w154' + poster, 'id': response['results'][0]['id'], 'release_date': releaseDate}
 
 @app.route('/')
 def index():
@@ -60,12 +61,13 @@ def index():
 
     print 'Connected!'
 
-    query = cursor.execute('SELECT * FROM movies WHERE uid = ?', [profile['id']])
+#    query = cursor.execute('SELECT * FROM movies WHERE uid = ?', [profile['id']])
     count = 0
-    for row in query:
-        count += 1
+  #  for row in query:
+   #     count += 1
 
     if (count <= 0):
+        print "Quering the Movies"
         queryMutual = "select mutual_friend_count,uid,movies from user where uid in \
             (select uid2 from friend where uid1=me()) order by mutual_friend_count desc LIMIT 100"
         params = urllib.urlencode({'q':queryMutual, 'access_token':session['key'] })
@@ -98,53 +100,22 @@ def index():
         movie_list = sorted(movieRatingsList, key=lambda movieRatingsList: movieRatingsList[1])[::-1]
         movie_list = [name for (name,rating) in movie_list]
 
+        movie_list = movie_list[:75]
         movie_list_final = []
         for movie in movie_list:
             info = get_info(movie)
             if info['poster'] != '':
-                movie_list_final.append((movieRatings[movie],movie,info['poster'],info['id']))
+                if not info['release_date'] > 1930:
+                    info['release_date'] = 2000
+                movie_list_final.append((movieRatings[movie],movie,info['poster'],info['id'],info['release_date']))
 
         movie_list = movie_list_final
         cursor.execute('INSERT INTO movies VALUES (?, ?)', (profile['id'], json.dumps(movie_list)))
         db.commit()
 
-    ''''
-    if count > 0:
-        print 'Calculating Weights'
-
-
-        print 'Querying movies.'
-
-        movie_counts = dict()
-        for i in xrange(1, len(friend_list) / 50):
-            batch = []
-            for friend in friend_list[((i - 1) * 50):(i * 50)]:
-                batch.append({'method': 'GET', 'relative_url': friend + '/movies'})
-
-            result = graph.request("", post_args={"batch": json.dumps(batch)})[:5]
-            for res in result:
-                friend_movies = json.loads(res['body'])['data']
-                for friend_movie in friend_movies:
-                    friend_movie_name = friend_movie['name']
-                    if friend_movie_name in movie_counts:
-                        movie_counts[friend_movie_name] += 1
-                    else:
-                        movie_counts[friend_movie_name] = 1
-        movie_list = []
-        for movie in movie_counts.keys():
-            info = get_info(movie)
-            if info['poster'] == '':
-                continue
-            movie_list.append((movie_counts[movie], movie, info['poster'], info['id']))
-        movie_list = sorted(movie_list, key=lambda movie_list: movie_list[0])[::-1]
-
-        print movie_list
-        cursor.execute('INSERT INTO movies VALUES (?, ?)', (profile['id'], json.dumps(movie_list)))
-        db.commit()
-    '''
-
-    query = cursor.execute('SELECT * FROM movies WHERE id = "%s"' % profile['id'])
-    loadedMovies = map(lambda pair: {'name': pair[1], 'poster': pair[2]}, json.loads(query.fetchone()[1]))
+    query = cursor.execute('SELECT * FROM movies WHERE uid = "%s"' % profile['id'])
+    loadedMovies = map(lambda pair: {'name': pair[1], 'poster': pair[2], 'year': pair[4], 'rating': pair[0]}, json.loads(query.fetchone()[1]))
+    print loadedMovies
     return render_template('index.jinja2', movies=loadedMovies, books=books)
 
 @app.route('/token')
