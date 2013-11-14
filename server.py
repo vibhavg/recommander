@@ -46,7 +46,7 @@ def index():
     db = sqlite3.connect('movies.db')
     cursor = db.cursor()
 
-    print 'Connecting to Graph API...'
+    #print 'Connecting to Graph API...'
     try:
         graph = facebook.GraphAPI(session['key'])
         profile = graph.get_object("me")
@@ -59,7 +59,7 @@ def index():
         session.pop('key')
         return render_template('index.jinja2', movies=[], books=books)
 
-    print 'Connected!'
+    # print 'Connected!'
 
 #    query = cursor.execute('SELECT * FROM movies WHERE uid = ?', [profile['id']])
     count = 0
@@ -128,4 +128,5 @@ def token():
         return json.dumps({'refresh': False})
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0')
+
