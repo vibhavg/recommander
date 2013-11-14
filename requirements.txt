@@ -1,14 +1,11 @@
--e git://github.com/django/django.git@4e50e4065489f06d72eed8ce2d9ae98639be5a93#egg=Django-origin/HEAD
 Flask==0.10.1
 GnuPGInterface==0.3.2
 Jinja2==2.7.1
 Mako==0.8.1
 MarkupSafe==0.15
-MySQL-python==1.2.4
 PAM==0.4.2
 Pillow==2.0.0
 PyICU==1.5
-Scrapy==0.18.4
 SecretStorage==1.0.0
 Twisted==13.0.0
 Twisted-Conch==13.0.0
