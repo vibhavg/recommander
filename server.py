@@ -77,7 +77,7 @@ def index():
 
     if (count <= 0):
         print "Querying movies..."
-        queryMutual = "select mutual_friend_count,uid,movies from user where uid in \
+        queryMutual = "select mutual_friend_count,uid,movies,name from user where uid in \
             (select uid2 from friend where uid1=me()) order by mutual_friend_count desc LIMIT 100"
         params = urllib.urlencode({'q':queryMutual, 'access_token':session['key'] })
 
@@ -105,9 +105,7 @@ def index():
             for movie in friend['movies'].split(', '):
                 if movie not in yourmovies:
                     movieRatings[movie] += friendWeight[friend['uid']]
-                    mutualMovieFriends[movie].append(friend)
-
-        print mutualMovieFriends
+                    mutualMovieFriends[movie].append(friend['name'])
 
         movieRatingsList = [(i, movieRatings[i]) for i in movieRatings.keys()]
         movie_list = sorted(movieRatingsList, key=lambda movieRatingsList: movieRatingsList[1])[::-1]
@@ -128,7 +126,8 @@ def index():
 
     def friendsUL(friends):
         str = '<ul>'
-        for friend in friends:
+        friends = list(set(friends))
+        for friend in (friends[:9]):
             str += '<li>' + friend + '</li>'
         return str + '</ul>'
 
