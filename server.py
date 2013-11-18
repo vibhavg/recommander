@@ -122,9 +122,17 @@ def index():
         cursor.execute('INSERT INTO movies VALUES (?, ?)', (profile['id'], json.dumps(movie_list)))
         db.commit()
 
+    def friendsUL(friends):
+        str = '<ul>'
+        for friend in friends:
+            str += '<li>' + friend + '</li>'
+        return str + '</ul>'
+
     query = cursor.execute('SELECT * FROM movies WHERE uid = "%s"' % profile['id'])
     loadedMovies = map(lambda pair: {'name': pair[1], 'poster': pair[2], 'year': pair[4], 
-                                     'rating': pair[0], 'genres': json.dumps(pair[5]), 'url': 'http://themoviedb.org/movie/' + str(pair[3])}, 
+                                     'rating': pair[0], 'genres': json.dumps(pair[5]), 
+                                     'url': 'http://themoviedb.org/movie/' + str(pair[3])
+                                     'friends': friendsUL([])}, 
                        json.loads(query.fetchone()[1]))
     return render_template('index.jinja2', movies=loadedMovies)
 

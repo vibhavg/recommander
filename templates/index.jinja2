@@ -58,7 +58,7 @@
       </nav>
       <div class="row movies">
         {% for movie in movies[:20] %}
-        <a class="col-md-2 well movie" target="_blank" href="{{ movie.url }}" rating="{{ movie.rating }}" year="{{ movie.year }}" genres='{{ movie.genres }}'>
+        <a class="col-md-2 well movie" target="_blank" href="{{ movie.url }}" rating="{{ movie.rating }}" year="{{ movie.year }}" genres='{{ movie.genres }}' data-toggle="popover" data-title="Friends who like this movie" data-content="{{ movie.friends }}" data-placement="auto right" data-html="true">
           <div class="clip">
             <h3>{{ movie.name }}</h3>
             <div class="poster" style="background-image: url('{{ movie.poster }}')"></div>

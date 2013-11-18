@@ -59,4 +59,12 @@ $(document).ready(function (){
     });
 
     $('select').select2({width: 150});
+    
+    $('.navbar-brand').click(function() {
+        $('input[value=rating]').click();
+        $('select').select2('val', '');
+        $container.isotope({sortBy: '', filter: ''});
+    });
+
+    $('.movie').popover({trigger: 'hover'})
 });
