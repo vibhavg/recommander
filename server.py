@@ -105,7 +105,7 @@ def index():
             for movie in friend['movies'].split(', '):
                 if movie not in yourmovies:
                     movieRatings[movie] += friendWeight[friend['uid']]
-            #        mutualMovieFriends[movie].append(friend)
+                    mutualMovieFriends[movie].append(friend)
 
 
         movieRatingsList = [(i, movieRatings[i]) for i in movieRatings.keys()]
