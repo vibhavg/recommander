@@ -107,6 +107,7 @@ def index():
                     movieRatings[movie] += friendWeight[friend['uid']]
                     mutualMovieFriends[movie].append(friend)
 
+        print mutualMovieFriends
 
         movieRatingsList = [(i, movieRatings[i]) for i in movieRatings.keys()]
         movie_list = sorted(movieRatingsList, key=lambda movieRatingsList: movieRatingsList[1])[::-1]
