@@ -8,14 +8,9 @@ import facebook
 import sys
 import os
 import sqlite3
-app = Flask(__name__)
+import operator
 
-books = [
-    {'name': 'The Hunger Games',
-     'poster': 'http://upload.wikimedia.org/wikipedia/en/a/ab/Hunger_games.jpg'},
-    {'name': 'Ender\'s Game',
-     'poster': 'http://media.npr.org/assets/bakertaylor/covers/e/enders-game/9780812550702_custom-14b6b3e2b8be027acc868fa0aba0670be8900168-s6-c30.jpg'}
-]
+app = Flask(__name__)
 
 app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
 MOVIEDB_KEY = '46a4fa7499a15b994b2bd72515a07315'
@@ -35,19 +30,32 @@ def get_info(name):
     if response['total_results'] == 0:
         return empty
 
-    poster = response['results'][0]['poster_path']
-    releaseDate = response['results'][0]['release_date'][:4]
-    return empty if poster is None else {'poster': CONFIG['images']['base_url'] + 'w154' + poster, 'id': response['results'][0]['id'], 'release_date': releaseDate}
+    movie_data = response['results'][0]
+    try:
+        request = Request('http://api.themoviedb.org/3/movie/%s?%s' % (movie_data['id'], urlencode(args)), headers=HEADERS)
+        response = json.loads(urlopen(request).read())
+    except:
+        return empty
+
+    poster = movie_data['poster_path']
+    release_date = movie_data['release_date'][:4]
+    genres = map(operator.itemgetter('name'), response['genres'])
+    return empty if poster is None else {'poster': CONFIG['images']['base_url'] + 'w154' + poster, 
+                                         'id': movie_data['id'], 
+                                         'release_date': release_date,
+                                         'genres': genres}
 
 @app.route('/')
 def index():
     if not 'key' in session:
-        return render_template('index.jinja2', movies=[], books=books)
+        return render_template('index.jinja2', movies=[])
+
+    print 'key: %s' % session['key']
 
     db = sqlite3.connect('movies.db')
     cursor = db.cursor()
 
-    #print 'Connecting to Graph API...'
+    print 'Connecting to Graph API...'
     try:
         graph = facebook.GraphAPI(session['key'])
         profile = graph.get_object("me")
@@ -58,17 +66,17 @@ def index():
         print 'Key failure :('
 
         session.pop('key')
-        return render_template('index.jinja2', movies=[], books=books)
+        return render_template('index.jinja2', movies=[])
 
-    # print 'Connected!'
+    print 'Connected!'
 
-#    query = cursor.execute('SELECT * FROM movies WHERE uid = ?', [profile['id']])
+    query = cursor.execute('SELECT * FROM movies WHERE uid = ?', [profile['id']])
     count = 0
-  #  for row in query:
-   #     count += 1
+    for row in query:
+        count += 1
 
     if (count <= 0):
-        print "Quering the Movies"
+        print "Querying movies..."
         queryMutual = "select mutual_friend_count,uid,movies from user where uid in \
             (select uid2 from friend where uid1=me()) order by mutual_friend_count desc LIMIT 100"
         params = urllib.urlencode({'q':queryMutual, 'access_token':session['key'] })
@@ -108,21 +116,22 @@ def index():
             if info['poster'] != '':
                 if not info['release_date'] > 1930:
                     info['release_date'] = 2000
-                movie_list_final.append((movieRatings[movie],movie,info['poster'],info['id'],info['release_date']))
+                movie_list_final.append((movieRatings[movie],movie,info['poster'],info['id'],info['release_date'],info['genres']))
 
         movie_list = movie_list_final
         cursor.execute('INSERT INTO movies VALUES (?, ?)', (profile['id'], json.dumps(movie_list)))
         db.commit()
 
     query = cursor.execute('SELECT * FROM movies WHERE uid = "%s"' % profile['id'])
-    loadedMovies = map(lambda pair: {'name': pair[1], 'poster': pair[2], 'year': pair[4], 'rating': pair[0]}, json.loads(query.fetchone()[1]))
-    print loadedMovies
-    return render_template('index.jinja2', movies=loadedMovies, books=books)
+    loadedMovies = map(lambda pair: {'name': pair[1], 'poster': pair[2], 'year': pair[4], 
+                                     'rating': pair[0], 'genres': json.dumps(pair[5]), 'url': 'http://themoviedb.org/movie/' + str(pair[3])}, 
+                       json.loads(query.fetchone()[1]))
+    return render_template('index.jinja2', movies=loadedMovies)
 
 @app.route('/token')
 def token():
     key = request.args.get('key', '')
-    if not 'key' in session or key != session['key']:
+    if not 'key' in session: #or key != session['key']:
         session['key'] = key
         return json.dumps({'refresh': True})
     else:
@@ -131,4 +140,5 @@ def token():
 if __name__ == "__main__":
     port = int(os.environ.get('PORT',5000))
     app.run(host='0.0.0.0', port=port)
+    #app.run(debug=True)
 

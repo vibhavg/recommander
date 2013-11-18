@@ -6,6 +6,7 @@ $(document).ready(function (){
         $(this).data('rank', i);
         $(this).data('year', $(this).attr('year'));
         $(this).data('rating',$(this).attr('rating'));
+        $(this).data('genres', JSON.parse($(this).attr('genres')));
     });
 
     $container.isotope({
@@ -22,7 +23,7 @@ $(document).ready(function (){
                 return $elem.data('year');
             },
             rating: function($elem) {
-                return 7 -$elem.attr('rating');
+                return 7 - $elem.attr('rating');
             }
         }
     });
@@ -43,7 +44,7 @@ $(document).ready(function (){
     $('#genre').change(function() {
         var genre = $(this).val();
         $('.movie').each(function() {
-            if (!genre || Math.random() > 0.5) {
+            if (!genre || $(this).data('genres').indexOf(genre) > -1) {
                 $(this).addClass('filter');
             } else {
                 $(this).removeClass('filter');
@@ -56,4 +57,6 @@ $(document).ready(function (){
     $('input[name=sort]').change(function() {
         $container.isotope({sortBy: $(this).val()});
     });
+
+    $('select').select2({width: 150});
 });

@@ -12,8 +12,12 @@ window.fbAsyncInit = function() {
         if (response.status === 'connected') {
             $.ajax({
                 url: '/token?key=' + response.authResponse.accessToken,
-                success: function(data) {
-                    if (data.refresh) { window.location.reload(); }
+                success: function(str) {
+                    var data = JSON.parse(str);
+                    if (data.refresh) {
+                        $('.loading').fadeIn();
+                        window.location.reload();
+                    }
                 }
             });
         } else {
