@@ -40,8 +40,8 @@ def get_info(name):
     poster = movie_data['poster_path']
     release_date = movie_data['release_date'][:4]
     genres = map(operator.itemgetter('name'), response['genres'])
-    return empty if poster is None else {'poster': CONFIG['images']['base_url'] + 'w154' + poster, 
-                                         'id': movie_data['id'], 
+    return empty if poster is None else {'poster': CONFIG['images']['base_url'] + 'w154' + poster,
+                                         'id': movie_data['id'],
                                          'release_date': release_date,
                                          'genres': genres}
 
@@ -78,7 +78,7 @@ def index():
     if (count <= 0):
         print "Querying movies..."
         queryMutual = "select mutual_friend_count,uid,movies from user where uid in \
-            (select uid2 from friend where uid1=me()) order by mutual_friend_count desc LIMIT 100"
+            (select uid2 from friend where uid1=me()) order by mutual_friend_count desc LIMIT 150"
         params = urllib.urlencode({'q':queryMutual, 'access_token':session['key'] })
 
         url = "https://graph.facebook.com/fql?" + params
@@ -100,10 +100,12 @@ def index():
             friendWeight[friend['uid']] += float(friend['mutual_friend_count'])/numFriends
 
         movieRatings = defaultdict(int)
+        mutualMovieFriends = defaultdict(list)
         for friend in data:
             for movie in friend['movies'].split(', '):
                 if movie not in yourmovies:
                     movieRatings[movie] += friendWeight[friend['uid']]
+                    mutualMovieFriends[movie].append(friend)
 
         movieRatingsList = [(i, movieRatings[i]) for i in movieRatings.keys()]
         movie_list = sorted(movieRatingsList, key=lambda movieRatingsList: movieRatingsList[1])[::-1]
@@ -116,7 +118,7 @@ def index():
             if info['poster'] != '':
                 if not info['release_date'] > 1930:
                     info['release_date'] = 2000
-                movie_list_final.append((movieRatings[movie],movie,info['poster'],info['id'],info['release_date'],info['genres']))
+                movie_list_final.append((movieRatings[movie],movie,info['poster'],info['id'],info['release_date'],info['genres'], mutualMovieFriends[movie]))
 
         movie_list = movie_list_final
         cursor.execute('INSERT INTO movies VALUES (?, ?)', (profile['id'], json.dumps(movie_list)))
@@ -129,10 +131,10 @@ def index():
         return str + '</ul>'
 
     query = cursor.execute('SELECT * FROM movies WHERE uid = "%s"' % profile['id'])
-    loadedMovies = map(lambda pair: {'name': pair[1], 'poster': pair[2], 'year': pair[4], 
-                                     'rating': pair[0], 'genres': json.dumps(pair[5]), 
-                                     'url': 'http://themoviedb.org/movie/' + str(pair[3])
-                                     'friends': friendsUL([])}, 
+    loadedMovies = map(lambda pair: {'name': pair[1], 'poster': pair[2], 'year': pair[4],
+                                     'rating': pair[0], 'genres': json.dumps(pair[5]),
+                                     'url': 'http://themoviedb.org/movie/' + str(pair[3]),
+                                     'friends': friendsUL(pair[6])},
                        json.loads(query.fetchone()[1]))
     return render_template('index.jinja2', movies=loadedMovies)
 
